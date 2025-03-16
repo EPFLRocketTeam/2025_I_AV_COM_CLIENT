@@ -1,10 +1,15 @@
-#ifdef ARDUINO  // Compiles only in an Arduino environment
+#ifdef ARDUINO // Compiles only in an Arduino environment
 
 #include "Arduino.h"
 
 TeensyUART::TeensyUART(HardwareSerial &serial, long baudrate) : UART(), serial(serial)
 {
+}
+
+bool TeensyUART::Begin()
+{
     serial.begin(baudrate);
+    return true;
 }
 
 size_t TeensyUART::Send(const unsigned char *data, const size_t data_size)

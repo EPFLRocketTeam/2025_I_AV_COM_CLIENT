@@ -23,8 +23,6 @@ constexpr size_t RECEIVE_BUFFER_SIZE = 1024;
 constexpr size_t SEND_BUFFER_SIZE = 1024;
 constexpr size_t RING_BUFFER_SIZE = 2048;
 
-// TODO: Replace constructor by begin()
-
 class UART
 {
   public:
@@ -49,6 +47,9 @@ class UART
   protected:
     // These methods are specific to the UART implementation.
     // They need to be implemented by the derived classes for each platform.
+
+    // Sets up the UART connextion
+    virtual bool Begin() = 0;
 
     // Tries to write the data to the UART device, without blocking.
     // Returns the number of bytes written.

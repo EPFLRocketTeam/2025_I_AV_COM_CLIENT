@@ -8,14 +8,26 @@
 #include <termios.h>     // Terminal I/O
 #include <unistd.h>      // For read, write, close
 
-CM4UART::CM4UART(const int baudrate, const char *device, quill::Logger *logger) : UART()
+CM4UART::CM4UART(const int baudrate, const char *device, quill::Logger *logger) : UART(),
+                                                                                  baudrate(baudrate),
+                                                                                  device(device)
+{
+}
+
+CM4UART::~CM4UART()
+{
+    close(uart_fd);
+}
+
+bool CM4UART::Begin()
 {
     // Open UART device, in read-write, non-blocking mode.
     // NOCTTY means that the device is not the controlling terminal for the process.
     uart_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (uart_fd < 0)
     {
-        throw std::runtime_error(std::string("Failed to open UART device ") + device);
+        Log(LOG_LEVEL::ERROR, strcat("Failed to open UART device ", device));
+        return false;
     }
 
     struct termios tty;
@@ -24,7 +36,8 @@ CM4UART::CM4UART(const int baudrate, const char *device, quill::Logger *logger) 
     if (tcgetattr(uart_fd, &tty) != 0)
     {
         close(uart_fd);
-        throw std::runtime_error("Failed to get UART attributes.");
+        Log(LOG_LEVEL::ERROR, "Failed to get UART attributes.");
+        return false;
     }
 
     // Set baud rate, input/output speed
@@ -46,15 +59,11 @@ CM4UART::CM4UART(const int baudrate, const char *device, quill::Logger *logger) 
     if (tcsetattr(uart_fd, TCSANOW, &tty) != 0)
     {
         close(uart_fd);
-        throw std::runtime_error("Failed to set UART attributes.");
+        Log(LOG_LEVEL::ERROR, "Failed to set UART attributes.");
+        return false;
     }
 
-    LOG_INFO(logger, "UART set up successfully");
-}
-
-CM4UART::~CM4UART()
-{
-    close(uart_fd);
+    Log(LOG_LEVEL::INFO, "UART set up successfully");
 }
 
 size_t CM4UART::Send(const unsigned char *data, const size_t data_size)
