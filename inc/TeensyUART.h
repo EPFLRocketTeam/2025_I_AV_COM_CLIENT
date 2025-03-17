@@ -9,14 +9,15 @@ class TeensyUART : public UART
 public:
     TeensyUART(HardwareSerial &serial, long baudrate);
     ~TeensyUART() = default;
+    bool Begin() override;
 
 private:
-    bool Begin() override;
     size_t Send(const unsigned char *data, const size_t data_size) override;
     size_t Receive(unsigned char *data, const size_t data_size) override;
     void Log(LOG_LEVEL level, const char *message) override;
 
     HardwareSerial &serial;
+    int baudrate;
 };
 
 #endif // TEENSY_UART_H

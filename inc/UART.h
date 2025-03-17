@@ -28,15 +28,18 @@ class UART
   public:
     UART();
     ~UART() = default;
+    
+    // Sets up the UART connextion
+    virtual bool Begin() = 0;
 
     // Register a packet handler function for a specific ID.
     void RegisterHandler(int packet_id, std::function<void(Payload &)> handler);
-
-    // Writes a packet to the UART device.
+    
+    // Queue a packet to be sent over UART.
+    // Returns true if the packet was successfully queued.
     bool SendUARTPacket(const uint8_t id, Payload &payload);
 
-    // Writes a packet to the UART device.
-    // Throws an exception if the packet could not be transmitted.
+    // Tries to send all the packets in the send buffer.
     void SendUARTPackets();
 
     // Read bytes from the UART device and try to parse them into packets.
@@ -44,12 +47,9 @@ class UART
     // Returns the number of packets received.
     int ReceiveUARTPackets();
 
-  protected:
+  protected:  
     // These methods are specific to the UART implementation.
     // They need to be implemented by the derived classes for each platform.
-
-    // Sets up the UART connextion
-    virtual bool Begin() = 0;
 
     // Tries to write the data to the UART device, without blocking.
     // Returns the number of bytes written.
