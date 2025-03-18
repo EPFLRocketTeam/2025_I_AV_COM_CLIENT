@@ -45,7 +45,7 @@ void TeensyUART::Log(LOG_LEVEL level, std::string message)
         Serial.print("UNKNOWN: ");
         break;
     }
-    Serial.println(message);
+    Serial.println(message.c_str());
 }
 
 #endif // ARDUINO
