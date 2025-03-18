@@ -68,6 +68,7 @@ class UART
     };
 
     // Log a message with the specified log level.
+    // TODO: Use std::string instead of char*
     virtual void Log(LOG_LEVEL level, const char *message) = 0;
 
   private:
