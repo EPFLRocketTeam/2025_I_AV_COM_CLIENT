@@ -4,6 +4,7 @@
 
 #include "UART.h"
 #include "quill/Quill.h" // For Logger
+#include <string>
 
 class CM4UART : public UART
 {
@@ -20,7 +21,7 @@ class CM4UART : public UART
     bool Begin() override;
     size_t Send(const unsigned char *data, const size_t data_size) override;
     size_t Receive(unsigned char *data, const size_t data_size) override;
-    void Log(LOG_LEVEL level, const char *message) override;
+    void Log(LOG_LEVEL level, std::string message) override;
 };
 
 #endif // CM4_UART_H

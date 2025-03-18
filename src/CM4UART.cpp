@@ -26,7 +26,7 @@ bool CM4UART::Begin()
     uart_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (uart_fd < 0)
     {
-        Log(LOG_LEVEL::ERROR, strcat("Failed to open UART device ", device));
+        Log(LOG_LEVEL::ERROR, "Failed to open UART device " + device));
         return false;
     }
 
@@ -79,7 +79,7 @@ size_t CM4UART::Send(const unsigned char *data, const size_t data_size)
         else
         {
             // throw std::runtime_error("Failed to send data");
-            LOG_INFO(logger, "Failed to send data");
+            Log(LOG_LEVEL::ERROR, "Failed to send data");
         }
     }
     return bytes_written;
@@ -98,13 +98,13 @@ size_t CM4UART::Receive(unsigned char *data, const size_t data_size)
         else
         {
             // throw std::runtime_error("Failed to receive data");
-            LOG_WARNING(logger, "Failed to receive data");
+            Log(LOG_LEVEL::ERROR, "Failed to receive data");
         }
     }
     return bytes_read;
 }
 
-void CM4UART::Log(LOG_LEVEL level, const char *message)
+void CM4UART::Log(LOG_LEVEL level, std::string message)
 {
     switch (level)
     {

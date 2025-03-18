@@ -3,6 +3,7 @@
 #define TEENSY_UART_H
 
 #include "Arduino.h"
+#include <string>
 
 class TeensyUART : public UART
 {
@@ -14,7 +15,7 @@ private:
     bool Begin() override;
     size_t Send(const unsigned char *data, const size_t data_size) override;
     size_t Receive(unsigned char *data, const size_t data_size) override;
-    void Log(LOG_LEVEL level, const char *message) override;
+    void Log(LOG_LEVEL level, std::string message) override;
 
     HardwareSerial &serial;
 };
