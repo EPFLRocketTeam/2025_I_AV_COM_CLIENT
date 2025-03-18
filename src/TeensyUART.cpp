@@ -1,6 +1,7 @@
 #ifdef ARDUINO // Compiles only in an Arduino environment
 
 #include "Arduino.h"
+#include <string>
 
 TeensyUART::TeensyUART(HardwareSerial &serial, long baudrate) : UART(), serial(serial), baudrate(baudrate)
 {
@@ -24,7 +25,7 @@ size_t TeensyUART::Receive(unsigned char *data, const size_t data_size)
     return serial.readBytes(data, readable);
 }
 
-void TeensyUART::Log(LOG_LEVEL level, const char *message)
+void TeensyUART::Log(LOG_LEVEL level, std::string message)
 {
     switch (level)
     {

@@ -10,12 +10,14 @@
 #include <functional>
 #include <optional>
 #include <unordered_map>
+#include <string>
 
 constexpr uint8_t START_BYTE = 0x7E;
 constexpr uint8_t END_BYTE = 0x7F;
 constexpr uint8_t ESCAPE_BYTE = 0x7D;
 constexpr uint8_t ESCAPE_MASK = 0x20;
 
+// TODO: Since the biggest packets are around 128 bytes, we should update these values
 constexpr size_t MAX_PAYLOAD_SIZE = 256;
 constexpr size_t MAX_PACKET_SIZE_STUFFED = (MAX_PAYLOAD_SIZE + 3) * 2 + 2;
 constexpr size_t MAX_PACKET_SIZE_UNSTUFFED = MAX_PAYLOAD_SIZE + 5;
@@ -68,7 +70,7 @@ class UART
     };
 
     // Log a message with the specified log level.
-    virtual void Log(LOG_LEVEL level, const char *message) = 0;
+    virtual void Log(LOG_LEVEL level, std::string message) = 0;
 
   private:
     uint8_t circularBuffer[RING_BUFFER_SIZE];
