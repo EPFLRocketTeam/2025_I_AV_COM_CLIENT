@@ -8,8 +8,6 @@
 #include <termios.h>     // Terminal I/O
 #include <unistd.h>      // For read, write, close
 
-#include <iostream>
-
 CM4UART::CM4UART(const int baudrate, const char *device, quill::Logger *logger) : UART(),
                                                                                   baudrate(baudrate),
                                                                                   device(device),
