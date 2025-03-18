@@ -64,6 +64,7 @@ bool CM4UART::Begin()
     }
 
     Log(LOG_LEVEL::INFO, "UART set up successfully");
+    return true;
 }
 
 size_t CM4UART::Send(const unsigned char *data, const size_t data_size)

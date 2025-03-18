@@ -11,6 +11,7 @@ class CM4UART : public UART
   public:
     CM4UART(const int baudrate, const char *device, quill::Logger *logger);
     ~CM4UART();
+    bool Begin() override;
 
   private:
     int baudrate;
@@ -18,7 +19,6 @@ class CM4UART : public UART
     quill::Logger *logger;
     int uart_fd;
 
-    bool Begin() override;
     size_t Send(const unsigned char *data, const size_t data_size) override;
     size_t Receive(unsigned char *data, const size_t data_size) override;
     void Log(LOG_LEVEL level, std::string message) override;

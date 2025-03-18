@@ -3,7 +3,7 @@
 #include "Arduino.h"
 #include <string>
 
-TeensyUART::TeensyUART(HardwareSerial &serial, long baudrate) : UART(), serial(serial)
+TeensyUART::TeensyUART(HardwareSerial &serial, long baudrate) : UART(), serial(serial), baudrate(baudrate)
 {
 }
 
