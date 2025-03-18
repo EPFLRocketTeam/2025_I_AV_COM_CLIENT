@@ -8,9 +8,12 @@
 #include <termios.h>     // Terminal I/O
 #include <unistd.h>      // For read, write, close
 
+#include <iostream>
+
 CM4UART::CM4UART(const int baudrate, const char *device, quill::Logger *logger) : UART(),
                                                                                   baudrate(baudrate),
-                                                                                  device(device)
+                                                                                  device(device),
+                                                                                  logger(logger)
 {
 }
 
@@ -110,19 +113,19 @@ void CM4UART::Log(LOG_LEVEL level, std::string message)
     switch (level)
     {
     case LOG_LEVEL::DEBUG:
-        LOG_DEBUG(logger, "", message);
+        LOG_DEBUG(logger, "{}", message);
         break;
     case LOG_LEVEL::INFO:
-        LOG_INFO(logger, "", message);
+        LOG_INFO(logger, "{}", message);
         break;
     case LOG_LEVEL::WARNING:
-        LOG_WARNING(logger, "", message);
+        LOG_WARNING(logger, "{}", message);
         break;
     case LOG_LEVEL::ERROR:
-        LOG_ERROR(logger, "", message);
+        LOG_ERROR(logger, "{}", message);
         break;
     default:
-        LOG_INFO(logger, "", message);
+        LOG_INFO(logger, "{}", message);
         break;
     }
 }
