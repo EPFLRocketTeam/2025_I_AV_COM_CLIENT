@@ -15,8 +15,8 @@ bool TeensyUART::Begin()
 
 size_t TeensyUART::Send(const unsigned char *data, const size_t data_size)
 {
-    size_t writable = min(data_size, serial.availableForWrite());
-    return serial.write(data, writable);
+    // size_t writable = min(data_size, serial.availableForWrite());
+    return serial.write(data, data_size);
 }
 
 size_t TeensyUART::Receive(unsigned char *data, const size_t data_size)
@@ -45,7 +45,7 @@ void TeensyUART::Log(LOG_LEVEL level, std::string message)
         Serial.print("UNKNOWN: ");
         break;
     }
-    Serial.println(message);
+    Serial.println(message.c_str());
 }
 
 #endif // ARDUINO
