@@ -26,7 +26,7 @@ bool CM4UART::Begin()
     uart_fd = open(device, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (uart_fd < 0)
     {
-        Log(LOG_LEVEL::ERROR, "Failed to open UART device " + device));
+        Log(LOG_LEVEL::ERROR, "Failed to open UART device " + std::string(device));
         return false;
     }
 
