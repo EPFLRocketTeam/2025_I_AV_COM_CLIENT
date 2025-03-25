@@ -4,74 +4,89 @@
 
 #include <cstring>
 
-Payload::Payload() : payloadSize(0), readPosition(0) {
+Payload::Payload() : payloadSize(0), readPosition(0)
+{
     std::memset(payload, 0, MAX_SIZE);
 }
 
-bool Payload::SetBytes(const uint8_t* bytes, size_t size) {
-    if (size > MAX_SIZE) {
+bool Payload::SetBytes(const uint8_t *bytes, size_t size)
+{
+    if (size > MAX_SIZE)
+    {
         return false; // Error: Size too large
     }
-    
+
     std::memcpy(payload, bytes, size);
     payloadSize = size;
     readPosition = 0;
     return true;
 }
 
-const uint8_t* Payload::GetBytes() const {
+const uint8_t *Payload::GetBytes() const
+{
     return payload;
 }
 
-size_t Payload::GetSize() const {
+size_t Payload::GetSize() const
+{
     return payloadSize;
 }
 
-bool Payload::WriteInt(int value) {
-    if (payloadSize + sizeof(int) > MAX_SIZE) {
+bool Payload::WriteInt(int value)
+{
+    if (payloadSize + sizeof(int) > MAX_SIZE)
+    {
         return false; // Error: Not enough space
     }
-    
+
     std::memcpy(payload + payloadSize, &value, sizeof(int));
     payloadSize += sizeof(int);
     return true;
 }
 
-bool Payload::WriteFloat(float value) {
-    if (payloadSize + sizeof(float) > MAX_SIZE) {
+bool Payload::WriteFloat(float value)
+{
+    if (payloadSize + sizeof(float) > MAX_SIZE)
+    {
         return false;
     }
-    
+
     std::memcpy(payload + payloadSize, &value, sizeof(float));
     payloadSize += sizeof(float);
     return true;
 }
 
-bool Payload::WriteDouble(double value) {
-    if (payloadSize + sizeof(double) > MAX_SIZE) {
+bool Payload::WriteDouble(double value)
+{
+    if (payloadSize + sizeof(double) > MAX_SIZE)
+    {
         return false;
     }
-    
+
     std::memcpy(payload + payloadSize, &value, sizeof(double));
     payloadSize += sizeof(double);
     return true;
 }
 
-bool Payload::WriteBool(bool value) {
-    if (payloadSize + 1 > MAX_SIZE) {
+bool Payload::WriteBool(bool value)
+{
+    if (payloadSize + 1 > MAX_SIZE)
+    {
         return false;
     }
-    
+
     payload[payloadSize] = value ? 1 : 0;
     payloadSize += 1;
     return true;
 }
 
-bool Payload::WriteBytes(const uint8_t* bytes, size_t size) {
-    if (payloadSize + size > MAX_SIZE) {
+bool Payload::WriteBytes(const uint8_t *bytes, size_t size)
+{
+    if (payloadSize + size > MAX_SIZE)
+    {
         return false;
     }
-    
+
     std::memcpy(payload + payloadSize, bytes, size);
     payloadSize += size;
     return true;
@@ -137,28 +152,34 @@ bool Payload::WriteSetpointSelection(const SetpointSelection &setpoint)
     return WriteBytes(buffer, sizeof(buffer));
 }
 
-bool Payload::ReadInt(int &value) {
-    if (readPosition + sizeof(int) > payloadSize) {
+bool Payload::ReadInt(int &value)
+{
+    if (readPosition + sizeof(int) > payloadSize)
+    {
         return false; // Error: Not enough bytes
     }
-    
+
     std::memcpy(&value, payload + readPosition, sizeof(int));
     readPosition += sizeof(int);
     return true;
 }
 
-bool Payload::ReadFloat(float &value) {
-    if (readPosition + sizeof(float) > payloadSize) {
+bool Payload::ReadFloat(float &value)
+{
+    if (readPosition + sizeof(float) > payloadSize)
+    {
         return false;
     }
-    
+
     std::memcpy(&value, payload + readPosition, sizeof(float));
     readPosition += sizeof(float);
     return true;
 }
 
-bool Payload::ReadDouble(double &value) {
-    if (readPosition + sizeof(double) > payloadSize) {
+bool Payload::ReadDouble(double &value)
+{
+    if (readPosition + sizeof(double) > payloadSize)
+    {
         return false;
     }
 
@@ -167,21 +188,25 @@ bool Payload::ReadDouble(double &value) {
     return true;
 }
 
-bool Payload::ReadBool(bool &value) {
-    if (readPosition >= payloadSize) {
+bool Payload::ReadBool(bool &value)
+{
+    if (readPosition >= payloadSize)
+    {
         return false;
     }
-    
+
     value = payload[readPosition] != 0;
     readPosition += 1;
     return true;
 }
 
-bool Payload::ReadBytes(uint8_t* destBuffer, size_t length) {
-    if (readPosition + length > payloadSize) {
+bool Payload::ReadBytes(uint8_t *destBuffer, size_t length)
+{
+    if (readPosition + length > payloadSize)
+    {
         return false;
     }
-    
+
     std::memcpy(destBuffer, payload + readPosition, length);
     readPosition += length;
     return true;
@@ -244,10 +269,44 @@ bool Payload::ReadControlInputPacket(ControlInputPacket &control_input)
 {
     bool success = true;
     success &= ReadBool(control_input.armed);
-    success &= ReadState(control_input.desired_state);
-    success &= ReadState(control_input.current_state);
-    success &= ReadSetpointSelection(control_input.setpointSelection);
-    success &= ReadDouble(control_input.inline_thrust);
+    success &= ReadDouble(control_input.timestamp);
+
+    // We only need to read the rest of the packet if the drone is armed
+    if (control_input.armed)
+    {
+        success &= ReadState(control_input.desired_state);
+        success &= ReadState(control_input.current_state);
+        success &= ReadSetpointSelection(control_input.setpointSelection);
+        success &= ReadDouble(control_input.inline_thrust);
+    }
+    return success;
+}
+
+bool Payload::ReadControlOutputPacket(ControlOutputPacket &control_output)
+{
+    bool success = true;
+    success &= ReadDouble(control_output.timestamp);
+    success &= ReadDouble(control_output.d1);
+    success &= ReadDouble(control_output.d2);
+    success &= ReadDouble(control_output.avg_throttle);
+    success &= ReadDouble(control_output.throttle_diff);
+    return success;
+}
+
+bool Payload::WriteControlInputPacket(const ControlInputPacket &control_input)
+{
+    bool success = true;
+    success &= WriteBool(control_input.armed);
+    success &= WriteDouble(control_input.timestamp);
+
+    // We only need to send the rest of the packet if the drone is armed
+    if (control_input.armed)
+    {
+        success &= WriteState(control_input.desired_state);
+        success &= WriteState(control_input.current_state);
+        success &= WriteSetpointSelection(control_input.setpointSelection);
+        success &= WriteDouble(control_input.inline_thrust);
+    }
     return success;
 }
 
@@ -267,11 +326,13 @@ void Payload::ResetReadPosition()
     readPosition = 0;
 }
 
-size_t Payload::GetReadPosition() const {
+size_t Payload::GetReadPosition() const
+{
     return readPosition;
 }
 
-void Payload::Clear() {
+void Payload::Clear()
+{
     payloadSize = 0;
     readPosition = 0;
 }
