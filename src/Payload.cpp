@@ -77,6 +77,66 @@ bool Payload::WriteBytes(const uint8_t* bytes, size_t size) {
     return true;
 }
 
+bool Payload::WriteVec3(const Vec3 &vec)
+{
+    bool success = true;
+    success &= WriteDouble(vec.x);
+    success &= WriteDouble(vec.y);
+    success &= WriteDouble(vec.z);
+    return success;
+}
+
+bool Payload::WriteState(const State &state)
+{
+    bool success = true;
+    success &= WriteVec3(state.pos);
+    success &= WriteVec3(state.vel);
+    success &= WriteVec3(state.att);
+    success &= WriteVec3(state.rate);
+    return success;
+}
+
+bool Payload::WriteSetpointSelection(const SetpointSelection &setpoint)
+{
+    // Pack all 12 boolean values into 2 bytes to minimize payload size
+    uint8_t buffer[2] = {0, 0};
+
+    // Pack posSPActive (3 bits)
+    if (setpoint.posSPActive[0])
+        buffer[0] |= (1 << 0);
+    if (setpoint.posSPActive[1])
+        buffer[0] |= (1 << 1);
+    if (setpoint.posSPActive[2])
+        buffer[0] |= (1 << 2);
+
+    // Pack velSPActive (3 bits)
+    if (setpoint.velSPActive[0])
+        buffer[0] |= (1 << 3);
+    if (setpoint.velSPActive[1])
+        buffer[0] |= (1 << 4);
+    if (setpoint.velSPActive[2])
+        buffer[0] |= (1 << 5);
+
+    // Pack attSPActive (3 bits across byte boundary)
+    if (setpoint.attSPActive[0])
+        buffer[0] |= (1 << 6);
+    if (setpoint.attSPActive[1])
+        buffer[0] |= (1 << 7);
+    if (setpoint.attSPActive[2])
+        buffer[1] |= (1 << 0);
+
+    // Pack rateSPActive (3 bits)
+    if (setpoint.rateSPActive[0])
+        buffer[1] |= (1 << 1);
+    if (setpoint.rateSPActive[1])
+        buffer[1] |= (1 << 2);
+    if (setpoint.rateSPActive[2])
+        buffer[1] |= (1 << 3);
+
+    // Write the packed bytes to the payload
+    return WriteBytes(buffer, sizeof(buffer));
+}
+
 bool Payload::ReadInt(int &value) {
     if (readPosition + sizeof(int) > payloadSize) {
         return false; // Error: Not enough bytes
@@ -127,7 +187,83 @@ bool Payload::ReadBytes(uint8_t* destBuffer, size_t length) {
     return true;
 }
 
-void Payload::ResetReadPosition() {
+bool Payload::ReadVec3(Vec3 &vec)
+{
+    bool success = true;
+    success &= ReadDouble(vec.x);
+    success &= ReadDouble(vec.y);
+    success &= ReadDouble(vec.z);
+    return success;
+}
+
+bool Payload::ReadState(State &state)
+{
+    bool success = true;
+    success &= ReadVec3(state.pos);
+    success &= ReadVec3(state.vel);
+    success &= ReadVec3(state.att);
+    success &= ReadVec3(state.rate);
+    return success;
+}
+
+bool Payload::ReadSetpointSelection(SetpointSelection &setpoint)
+{
+    // Read 2 bytes from the payload
+    uint8_t buffer[2];
+    bool success = ReadBytes(buffer, sizeof(buffer));
+
+    if (!success)
+    {
+        return false;
+    }
+
+    // Unpack posSPActive
+    setpoint.posSPActive[0] = (buffer[0] & (1 << 0)) != 0;
+    setpoint.posSPActive[1] = (buffer[0] & (1 << 1)) != 0;
+    setpoint.posSPActive[2] = (buffer[0] & (1 << 2)) != 0;
+
+    // Unpack velSPActive
+    setpoint.velSPActive[0] = (buffer[0] & (1 << 3)) != 0;
+    setpoint.velSPActive[1] = (buffer[0] & (1 << 4)) != 0;
+    setpoint.velSPActive[2] = (buffer[0] & (1 << 5)) != 0;
+
+    // Unpack attSPActive
+    setpoint.attSPActive[0] = (buffer[0] & (1 << 6)) != 0;
+    setpoint.attSPActive[1] = (buffer[0] & (1 << 7)) != 0;
+    setpoint.attSPActive[2] = (buffer[1] & (1 << 0)) != 0;
+
+    // Unpack rateSPActive
+    setpoint.rateSPActive[0] = (buffer[1] & (1 << 1)) != 0;
+    setpoint.rateSPActive[1] = (buffer[1] & (1 << 2)) != 0;
+    setpoint.rateSPActive[2] = (buffer[1] & (1 << 3)) != 0;
+
+    return true;
+}
+
+bool Payload::ReadControlInputPacket(ControlInputPacket &control_input)
+{
+    bool success = true;
+    success &= ReadBool(control_input.armed);
+    success &= ReadState(control_input.desired_state);
+    success &= ReadState(control_input.current_state);
+    success &= ReadSetpointSelection(control_input.setpointSelection);
+    success &= ReadDouble(control_input.inline_thrust);
+    return success;
+}
+
+bool Payload::WriteControlOutputPacket(const ControlOutputPacket &control_output)
+{
+    bool success = true;
+    success &= WriteDouble(control_output.timestamp);
+    success &= WriteDouble(control_output.d1);
+    success &= WriteDouble(control_output.d2);
+    success &= WriteDouble(control_output.avg_throttle);
+    success &= WriteDouble(control_output.throttle_diff);
+    return success;
+}
+
+void Payload::ResetReadPosition()
+{
     readPosition = 0;
 }
 
