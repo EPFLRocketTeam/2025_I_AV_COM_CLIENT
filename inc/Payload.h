@@ -1,66 +1,74 @@
-#ifndef PACKET_H
-#define PACKET_H
+#pragma once
 
-#include <cstddef>
+#include <vector>
 #include <cstdint>
+#include <cstring>
+#include <type_traits>
 
-#ifndef ARDUINO
-#include "Packets.h"
-#endif
+constexpr size_t MAX_PAYLOAD_SIZE = 256;
 
-class Payload
-{
-  private:
-    static const size_t MAX_SIZE = 1024; // Maximum packet size in bytes
-    uint8_t payload[MAX_SIZE];
-    size_t payloadSize;
-    size_t readPosition;
+class Payload {
+public:
+    Payload() : read_offset(0), overflow(false), out_of_bounds(false) {}
 
-  public:
-    // Constructor
-    Payload();
+    // Write raw bytes
+    void write(const void* data, size_t size) {
+        if (buffer.size() + size > MAX_PAYLOAD_SIZE) {
+            overflow = true;
+            return;
+        }
+        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(data);
+        buffer.insert(buffer.end(), bytes, bytes + size);
+    }
 
-    // Payload Getters and Setters
-    bool SetBytes(const uint8_t *bytes, size_t size);
-    const uint8_t *GetBytes() const;
-    size_t GetSize() const;
+    // Read raw bytes
+    void read(void* dest, size_t size) {
+        if (read_offset + size > buffer.size()) {
+            out_of_bounds = true;
+            return;
+        }
+        std::memcpy(dest, buffer.data() + read_offset, size);
+        read_offset += size;
+    }
 
-    // Write methods for basic types
-    bool WriteInt(int value);
-    bool WriteFloat(float value);
-    bool WriteDouble(double value);
-    bool WriteBool(bool value);
-    bool WriteBytes(const uint8_t *bytes, size_t size);
+    // Write POD types
+    template <typename T>
+    void write(const T& value) {
+        static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+        write(&value, sizeof(T));
+    }
 
-    // Write methods for our custom types
-    bool WriteVec3(const Vec3 &vec);
-    bool WriteState(const State &state);
-    bool WriteSetpointSelection(const SetpointSelection &setpoint);
+    // Read POD types
+    template <typename T>
+    void read(T& value) {
+        static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+        read(&value, sizeof(T));
+    }
 
-    // Write methods for the actual packet data
-    bool WriteControlInputPacket(const ControlInputPacket &control_input);
-    bool WriteControlOutputPacket(const ControlOutputPacket &control_output);
+    // Reset reading position
+    void resetRead() {
+        read_offset = 0;
+        out_of_bounds = false;
+    }
 
-    // Read methods for basic types
-    bool ReadInt(int &value);
-    bool ReadFloat(float &value);
-    bool ReadDouble(double &value);
-    bool ReadBool(bool &value);
-    bool ReadBytes(uint8_t *destBuffer, size_t length);
+    // Access underlying data
+    const std::vector<uint8_t>& data() const { return buffer; }
+    std::vector<uint8_t>& data() { return buffer; }
 
-    // Read methods for our custom types
-    bool ReadVec3(Vec3 &vec);
-    bool ReadState(State &state);
-    bool ReadSetpointSelection(SetpointSelection &setpoint);
+    size_t size() const { return buffer.size(); }
+    bool hasOverflow() const { return overflow; }
+    bool hasReadError() const { return out_of_bounds; }
 
-    // Read methods for the actual packet data
-    bool ReadControlInputPacket(ControlInputPacket &control_input);
-    bool ReadControlOutputPacket(ControlOutputPacket &control_output);
+    void clear() {
+        buffer.clear();
+        read_offset = 0;
+        overflow = false;
+        out_of_bounds = false;
+    }
 
-    // Utility methods
-    void ResetReadPosition();
-    size_t GetReadPosition() const;
-    void Clear();
+private:
+    std::vector<uint8_t> buffer;
+    size_t read_offset;
+    bool overflow;
+    bool out_of_bounds;
 };
-
-#endif // PACKET_H

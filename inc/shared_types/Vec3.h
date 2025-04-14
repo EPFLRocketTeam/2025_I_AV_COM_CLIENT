@@ -2,11 +2,12 @@
 // Created by alberts on 4/28/24.
 //
 
-#ifndef CONTROLLER_PROTO_VEC3_H
-#define CONTROLLER_PROTO_VEC3_H
+#ifndef VEC3_H
+#define VEC3_H
 
 #include <cmath>
 #include <stdexcept>
+#include "../Payload.h"
 
 struct Vec3 {
     double x, y, z;
@@ -95,6 +96,18 @@ struct Vec3 {
             return z;        
         }
     }
+
+    void serialize(Payload& payload) const {
+        payload.write(x);
+        payload.write(y);
+        payload.write(z);
+    }
+
+    void deserialize(Payload& payload) {
+        payload.read(x);
+        payload.read(y);
+        payload.read(z);
+    }
 };
 
-#endif //CONTROLLER_PROTO_VEC3_H
+#endif //VEC3_H

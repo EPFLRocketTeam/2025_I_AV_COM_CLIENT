@@ -15,9 +15,9 @@ UART::UART()
 {
 }
 
-void UART::RegisterHandler(int packetId, std::function<void(Payload &)> handler)
+void UART::RegisterHandler(std::function<void(Payload &)> new_handler)
 {
-    handlers[packetId] = handler;
+    handler = new_handler;
 }
 
 bool UART::SendUARTPacket(const uint8_t id, Payload &payload)

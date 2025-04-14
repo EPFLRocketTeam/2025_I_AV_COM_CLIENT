@@ -33,21 +33,15 @@ class UART
     
     // Sets up the UART connextion
     virtual bool Begin() = 0;
-
-    // Register a packet handler function for a specific ID.
-    void RegisterHandler(int packet_id, std::function<void(Payload &)> handler);
     
-    // Queue a packet to be sent over UART.
-    // Returns true if the packet was successfully queued.
-    bool SendUARTPacket(const uint8_t id, Payload &payload);
+    // Sends the packet over UART.
+    // Returns true if the packet was sent successfully, false in case of error.
+    bool SendPacket(Payload &payload);
 
-    // Tries to send all the packets in the send buffer.
-    void SendUARTPackets();
-
-    // Read bytes from the UART device and try to parse them into packets.
-    // Calls the registered handler functions for each packet.
-    // Returns the number of packets received.
-    int ReceiveUARTPackets();
+    // Tries to read a packet from the UART device.
+    // Returns true if a packet was read successfully, false otherwise in case of error.
+    // If no packet is available, it returns true and the payload is empty.
+    bool ReceivePacket(Payload &payload);
 
   protected:  
     // These methods are specific to the UART implementation.
@@ -81,11 +75,6 @@ class UART
     uint8_t sendBuffer[SEND_BUFFER_SIZE];
     size_t sendBufferStart;
     size_t sendBufferEnd;
-
-    int packetsRead; // The number of packets that have been read
-
-    // Handlers map
-    std::unordered_map<int, std::function<void(Payload&)>> handlers;
 
     // Calculate the available space in the send buffer
     size_t AvailableSendBufferSpace() const;
