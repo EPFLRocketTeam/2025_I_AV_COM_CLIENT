@@ -7,7 +7,7 @@ This protocol defines a structured way to send and receive data over UART. Each 
 Each packet follows this format:
 
 ```
-[ Start Byte | ID | Length | Payload | Checksum | End Byte ]
+[ Start Byte | Length | Payload | Checksum | End Byte ]
 ```
 
 ### Field Descriptions
@@ -15,7 +15,6 @@ Each packet follows this format:
 | Field          | Size (bytes) | Description                                                                |
 | -------------- | ------------ | -------------------------------------------------------------------------- |
 | **Start Byte** | 1            | Marks the beginning of a packet (`0x7E`)                                   |
-| **ID**         | 1            | Identifies the type of packet                                              |
 | **Length**     | 1            | Number of bytes in payload                                                 |
 | **Payload**    | Variable     | Data being transmitted                                                     |
 | **Checksum**   | 1            | XOR of all bytes from `ID` to `Payload` (error detection)              |
@@ -26,7 +25,6 @@ Each packet follows this format:
 ### Encoding Steps:
 
 1. Start with `0x7E` as the **Start Byte**.
-3. Add an **ID** field for identifying packet type.
 2. Compute the **Length** field (total bytes of payload).
 4. Insert the **Payload**.
 5. Compute the **Checksum** as an XOR of all bytes from `Length` to `Payload`.
@@ -38,7 +36,7 @@ Each packet follows this format:
 1. Wait for a **Start Byte**.
 2. When reading bytes, make sure to unstuff them.
 2. Read the **Length** field to determine expected bytes.
-3. Extract **ID, Payload, and Checksum**.
+3. Extract the **Payload, and Checksum**.
 4. Verify the **Checksum** (if incorrect, discard packet).
 5. Check for the **End Byte**.
 
