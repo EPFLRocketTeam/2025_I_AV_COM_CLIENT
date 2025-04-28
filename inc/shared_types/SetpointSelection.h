@@ -2,6 +2,7 @@
 #define SETPOINT_SELECTION_H
 
 #include "Vec3.h"
+#include "Payload.h"
 
 class SetpointSelection
 {

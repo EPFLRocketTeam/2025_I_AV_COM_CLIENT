@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PAYLOAD_H
+#define PAYLOAD_H
 
 #include <vector>
 #include <cstdint>
@@ -72,3 +73,5 @@ private:
     bool overflow;
     bool out_of_bounds;
 };
+
+#endif // PAYLOAD_H

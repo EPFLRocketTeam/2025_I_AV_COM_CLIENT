@@ -7,7 +7,7 @@
 
 #include <cmath>
 #include <stdexcept>
-#include "../Payload.h"
+#include "Payload.h"
 
 struct Vec3 {
     double x, y, z;

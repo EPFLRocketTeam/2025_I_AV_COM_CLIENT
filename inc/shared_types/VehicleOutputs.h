@@ -1,7 +1,7 @@
 #ifndef VEHICLE_OUTPUTS_H
 #define VEHICLE_OUTPUTS_H
 
-#include "../Payload.h"
+#include "Payload.h"
 
 struct VehicleOutputs
 {

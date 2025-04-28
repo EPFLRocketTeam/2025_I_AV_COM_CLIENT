@@ -3,7 +3,7 @@
 
 #include "State.h"
 #include "SetpointSelection.h"
-#include "../Payload.h"
+#include "Payload.h"
 
 struct VehicleInputs
 {

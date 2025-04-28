@@ -2,7 +2,7 @@
 #define STATE_H
 
 #include "Vec3.h"
-#include "../Payload.h"
+#include "Payload.h"
 
 
 struct State{
