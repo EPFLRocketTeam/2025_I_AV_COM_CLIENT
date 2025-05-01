@@ -1,6 +1,6 @@
 #ifdef ARDUINO // Only compile on Teensy
 
-#include "uart/TeensyDriver.h"
+#include "TeensyDriver.h"
 
 TeensyDriver::TeensyDriver(HardwareSerial &serial, int baudrate) : serial(serial),
                                                                    baudRate(baudrate)

@@ -1,4 +1,4 @@
-#include "uart/UARTDriver.h"
+#include "UARTDriver.h"
 
 // TODO: Better logging with a dedicated log method for each implementation
 

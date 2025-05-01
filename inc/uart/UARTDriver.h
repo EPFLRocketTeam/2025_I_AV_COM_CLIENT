@@ -1,7 +1,7 @@
 #ifndef UART_DRIVER_H
 #define UART_DRIVER_H
 
-#include "shared_types/Payload.h"
+#include "Payload.h"
 
 #include <cstddef> // For size_t
 #include <cstdint> // For uint8_t

@@ -15,4 +15,4 @@ add_library(com_client ${SOURCES} ${HEADERS})
 # target_link_libraries(com_client PUBLIC quill::quill)
 
 # Ensure headers are accessible
-target_include_directories(com_client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+target_include_directories(com_client PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc/shared_types ${CMAKE_CURRENT_SOURCE_DIR}/inc/uart)

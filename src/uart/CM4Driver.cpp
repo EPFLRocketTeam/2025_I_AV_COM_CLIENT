@@ -1,6 +1,6 @@
 #ifndef ARDUINO // Only compile on CM4
 
-#include "uart/CM4Driver.h"
+#include "CM4Driver.h"
 
 #include <fcntl.h>
 #include <termios.h>
@@ -78,35 +78,9 @@ bool CM4UARTDriver::ConfigureUART()
         return false;
     }
 
-    // Set baud rate
-    speed_t baud;
-    switch (baudRate)
-    {
-    case 9600:
-        baud = B9600;
-        break;
-    case 19200:
-        baud = B19200;
-        break;
-    case 38400:
-        baud = B38400;
-        break;
-    case 57600:
-        baud = B57600;
-        break;
-    case 115200:
-        baud = B115200;
-        break;
-    case 230400:
-        baud = B230400;
-        break;
-    default:
-        std::cerr << "Unsupported baud rate: " << baudRate << std::endl;
-        return false;
-    }
-
-    cfsetispeed(&options, baud);
-    cfsetospeed(&options, baud);
+    // Set the baud rate
+    cfsetispeed(&options, baudRate);
+    cfsetospeed(&options, baudRate);
 
     // Configure 8N1 (8 data bits, no parity, 1 stop bit)
     options.c_cflag = (options.c_cflag & ~CSIZE) | CS8; // 8-bit characters
@@ -245,7 +219,7 @@ bool CM4UARTDriver::WaitForAndReadPacket(Payload &payload)
     }
 }
 
-bool CM4UARTDriver::WritePacketOrTimeout(int timeout, Payload &payload)
+bool CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
 {
     if (!isInitialized)
     {
@@ -267,7 +241,7 @@ bool CM4UARTDriver::WritePacketOrTimeout(int timeout, Payload &payload)
     {
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
-        int remaining_timeout = timeout - static_cast<int>(elapsed);
+        int remaining_timeout = timeoutMs - static_cast<int>(elapsed);
         if (remaining_timeout <= 0)
         {
             std::cerr << "Timed out trying to write the packet to UART" << std::endl;
