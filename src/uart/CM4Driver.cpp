@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <chrono>
+#include <stdexcept>
 
 CM4UARTDriver::CM4UARTDriver(const std::string &device, int baud)
     : UARTDriver(),
@@ -128,7 +129,7 @@ bool CM4UARTDriver::SetupEpoll()
     return true;
 }
 
-bool CM4UARTDriver::ReadUntilPacketOrNoData(Payload &payload)
+Payload CM4UARTDriver::ReadPacket()
 {
     // We reset the circular receive buffer
     receiveBufferWriteIndex = 0;
@@ -154,26 +155,28 @@ bool CM4UARTDriver::ReadUntilPacketOrNoData(Payload &payload)
         ssize_t bytesRead = read(uartFd, receiverBuffer + receiveBufferWriteIndex, continuousSpace);
 
         // Error handling
-        if (bytesRead == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        if (bytesRead < 0)
         {
-            // No more data available for now, but we did not find a packet :(
-            std::cerr << "Failed to find packet in received UART data." << std::endl;
-            return false;
-        }
-        else if (bytesRead < 0)
-        {
-            // Error or EOF
-            std::cerr << "Error reading UART" << std::endl;
-            return false;
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                // No more data available for now, but we did not find a packet :(
+                throw std::runtime_error("No packet found in received data");
+            }
+            else
+            {
+                // Error or EOF
+                throw std::runtime_error("Error reading from UART device");
+            }
         }
 
         // Update write index
         receiveBufferWriteIndex = (receiveBufferWriteIndex + bytesRead) % RECEIVE_BUFFER_SIZE;
 
         // Check if we have found a packet
+        Payload payload;
         if (DecodePacket(payload))
         {
-            return true;
+            return payload;
         }
 
         // Check for buffer overflow
@@ -184,55 +187,50 @@ bool CM4UARTDriver::ReadUntilPacketOrNoData(Payload &payload)
     }
 }
 
-bool CM4UARTDriver::WaitForAndReadPacket(Payload &payload)
+bool CM4UARTDriver::WaitForData(int timeoutMs)
 {
-
     if (!isInitialized)
     {
-        std::cerr << "UART not initialized" << std::endl;
+        throw std::runtime_error("UART not initialized");
+    }
+
+    // Wait for data to become available using epoll
+    struct epoll_event events[1];
+    int eventCount = epoll_wait(epollFd, events, 1, timeoutMs);
+
+    if (eventCount < 0)
+    {
+        throw std::runtime_error("epoll_wait() failed");
+    }
+
+    if (eventCount == 0)
+    {
+        // Timeout occurred
         return false;
     }
 
-    while (true)
+    if (events[0].events & EPOLLIN)
     {
-        // Wait for data to become available using epoll
-        struct epoll_event events[1];
-        int eventCount = epoll_wait(epollFd, events, 1, -1); // -1 means wait indefinitely
-
-        if (eventCount < 0)
-        {
-            std::cerr << "epoll_wait() error: " << strerror(errno) << std::endl;
-            continue;
-        }
-
-        if ((eventCount > 0) && (events[0].events & EPOLLIN))
-        {
-            if (ReadUntilPacketOrNoData(payload))
-            {
-                return true;
-            }
-            else
-            {
-                continue;
-            }
-        }
+        // Data is available to read
+        return true;
+    }
+    else
+    {
+        // Unexpected event
+        throw std::runtime_error("Unexpected event on UART");
     }
 }
 
-bool CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
+// TODO: Could be improved to re use epoll for writing, or maybe just a simple write and the rest is overkill
+void CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
 {
     if (!isInitialized)
     {
-        std::cerr << "UART not initialized" << std::endl;
-        return false;
+        throw std::runtime_error("UART not initialized");
     }
 
     // Encode the packet
-    if (!EncodePacket(payload))
-    {
-        std::cerr << "Failed to encode packet" << std::endl;
-        return false;
-    }
+    EncodePacket(payload);
 
     // Send the packet or timeout trying
     size_t total_written = 0;
@@ -244,21 +242,18 @@ bool CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
         int remaining_timeout = timeoutMs - static_cast<int>(elapsed);
         if (remaining_timeout <= 0)
         {
-            std::cerr << "Timed out trying to write the packet to UART" << std::endl;
-            return false;
+            throw std::runtime_error("Timeout while writing to UART");
         }
 
         struct pollfd pfd = {uartFd, POLLOUT, 0};
         int poll_res = poll(&pfd, 1, remaining_timeout);
         if (poll_res < 0)
         {
-            std::cerr << "Error polling UART for writing packet" << std::endl;
-            return false;
+            throw std::runtime_error("poll() failed");
         }
         else if (poll_res == 0)
         {
-            std::cerr << "Timed out trying to write the packet to UART" << std::endl;
-            return false;
+            throw std::runtime_error("Timeout while writing to UART");
         }
 
         // Ready to write
@@ -271,13 +266,11 @@ bool CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
             }
             else
             {
-                std::cerr << "Error writing packet to UART device" << std::endl;
-                return false;
+                throw std::runtime_error("Error writing to UART device");
             }
         }
         total_written += bytesWritten;
     }
-    return true;
 }
 
 #endif // ARDUINO

@@ -38,7 +38,7 @@ class UARTDriver
 
     // Tries to encode the payload into a packet and places it in the send buffer.
     // Returns true if successful, false otherwise.
-    bool EncodePacket(Payload &payload);
+    void EncodePacket(Payload &payload);
 
     // This is a circular buffer.
     // New data is put at the write index.

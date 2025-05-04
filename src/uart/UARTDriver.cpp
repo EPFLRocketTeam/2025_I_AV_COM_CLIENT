@@ -97,7 +97,7 @@ bool UARTDriver::DecodePacket(Payload &payload)
     }
 }
 
-bool UARTDriver::EncodePacket(Payload &payload)
+void UARTDriver::EncodePacket(Payload &payload)
 {
     uint8_t unstuffedPacketBuffer[MAX_PACKET_SIZE_UNSTUFFED];
     size_t unstuffedPacketBufferIndex = 0;
@@ -109,11 +109,6 @@ bool UARTDriver::EncodePacket(Payload &payload)
     unstuffedPacketBuffer[unstuffedPacketBufferIndex++] = payload.size();
 
     // 3. Payload
-    if (payload.size() >= MAX_PAYLOAD_SIZE)
-    {
-        std::cerr << "UARTDriver Payload too big." << std::endl;
-        return false;
-    }
     payload.resetRead();
     payload.read(unstuffedPacketBuffer + unstuffedPacketBufferIndex, payload.size());
     unstuffedPacketBufferIndex += payload.size();
@@ -147,8 +142,6 @@ bool UARTDriver::EncodePacket(Payload &payload)
 
     // 3. Copy the END_BYTE as is
     sendBuffer[sendBufferIndex++] = unstuffedPacketBuffer[unstuffedPacketBufferIndex - 1]; // END_BYTE
-
-    return true;
 }
 
 uint8_t UARTDriver::ComputeChecksum(const uint8_t *data, size_t data_size)
