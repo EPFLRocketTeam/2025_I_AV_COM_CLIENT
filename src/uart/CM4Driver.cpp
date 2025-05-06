@@ -20,7 +20,8 @@ CM4UARTDriver::CM4UARTDriver(const std::string &device, int baud)
       devicePath(device),
       baudRate(baud),
       uartFd(-1),
-      epollFd(-1),
+      epollFdRead(-1),
+      epollFdWrite(-1),
       isInitialized(false)
 {
 }
@@ -32,9 +33,14 @@ CM4UARTDriver::~CM4UARTDriver()
         close(uartFd);
     }
 
-    if (epollFd >= 0)
+    if (epollFdRead >= 0)
     {
-        close(epollFd);
+        close(epollFdRead);
+    }
+    
+    if (epollFdWrite >= 0)
+    {
+        close(epollFdWrite);
     }
 }
 
@@ -224,7 +230,7 @@ bool CM4UARTDriver::WaitForData(int timeoutMs)
 
     // Wait for data to become available using epoll
     struct epoll_event events[1];
-    int eventCount = epoll_wait(epollFd, events, 1, timeoutMs);
+    int eventCount = epoll_wait(epollFdRead, events, 1, timeoutMs);
 
     if (eventCount < 0)
     {
