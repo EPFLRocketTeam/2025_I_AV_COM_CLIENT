@@ -105,24 +105,52 @@ bool CM4UARTDriver::ConfigureUART()
     return true;
 }
 
+// Update your setup function to create both epoll instances
 bool CM4UARTDriver::SetupEpoll()
 {
-    epollFd = epoll_create1(0);
-    if (epollFd < 0)
+    // Setup for reading
+    epollFdRead = epoll_create1(0);
+    if (epollFdRead < 0)
     {
-        std::cerr << "Failed to create epoll instance" << std::endl;
+        std::cerr << "Failed to create read epoll instance" << std::endl;
         return false;
     }
 
-    struct epoll_event event;
-    event.events = EPOLLIN;
-    event.data.fd = uartFd;
-
-    if (epoll_ctl(epollFd, EPOLL_CTL_ADD, uartFd, &event) < 0)
+    // Setup for writing
+    epollFdWrite = epoll_create1(0);
+    if (epollFdWrite < 0)
     {
-        std::cerr << "Failed to add UART fd to epoll" << std::endl;
-        close(epollFd);
-        epollFd = -1;
+        std::cerr << "Failed to create write epoll instance" << std::endl;
+        close(epollFdRead);
+        epollFdRead = -1;
+        return false;
+    }
+
+    // Configure read epoll
+    struct epoll_event eventRead;
+    eventRead.events = EPOLLIN;
+    eventRead.data.fd = uartFd;
+    if (epoll_ctl(epollFdRead, EPOLL_CTL_ADD, uartFd, &eventRead) < 0)
+    {
+        std::cerr << "Failed to add UART fd to read epoll" << std::endl;
+        close(epollFdRead);
+        close(epollFdWrite);
+        epollFdRead = -1;
+        epollFdWrite = -1;
+        return false;
+    }
+
+    // Configure write epoll
+    struct epoll_event eventWrite;
+    eventWrite.events = EPOLLOUT;
+    eventWrite.data.fd = uartFd;
+    if (epoll_ctl(epollFdWrite, EPOLL_CTL_ADD, uartFd, &eventWrite) < 0)
+    {
+        std::cerr << "Failed to add UART fd to write epoll" << std::endl;
+        close(epollFdRead);
+        close(epollFdWrite);
+        epollFdRead = -1;
+        epollFdWrite = -1;
         return false;
     }
 
@@ -221,7 +249,6 @@ bool CM4UARTDriver::WaitForData(int timeoutMs)
     }
 }
 
-// TODO: Could be improved to re use epoll for writing, or maybe just a simple write and the rest is overkill
 void CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
 {
     if (!isInitialized)
@@ -231,46 +258,82 @@ void CM4UARTDriver::WritePacketOrTimeout(int timeoutMs, Payload &payload)
 
     // Encode the packet
     EncodePacket(payload);
+    
+    // Start time for timeout calculation
+    struct timespec startTime;
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
 
-    // Send the packet or timeout trying
-    size_t total_written = 0;
-    auto start_time = std::chrono::steady_clock::now();
-    while (total_written < sendBufferIndex)
+    // Track how much data we've sent so far
+    size_t bytesSent = 0;
+
+    // Continue until all data is sent or timeout/error occurs
+    while (bytesSent < sendBufferIndex)
     {
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
-        int remaining_timeout = timeoutMs - static_cast<int>(elapsed);
-        if (remaining_timeout <= 0)
+        // Calculate remaining time for timeout
+        struct timespec currentTime;
+        clock_gettime(CLOCK_MONOTONIC, &currentTime);
+        int elapsedMs = (currentTime.tv_sec - startTime.tv_sec) * 1000 +
+                        (currentTime.tv_nsec - startTime.tv_nsec) / 1000000;
+        int remainingMs = timeoutMs - elapsedMs;
+
+        // Check if we've timed out
+        if (remainingMs <= 0)
         {
             throw std::runtime_error("Timeout while writing to UART");
         }
 
-        struct pollfd pfd = {uartFd, POLLOUT, 0};
-        int poll_res = poll(&pfd, 1, remaining_timeout);
-        if (poll_res < 0)
+        // Wait for the UART to be ready for writing
+        struct epoll_event events[1];
+        int numEvents = epoll_wait(epollFdWrite, events, 1, remainingMs);
+
+        // Check epoll results
+        if (numEvents < 0)
         {
-            throw std::runtime_error("poll() failed");
+            // Error in epoll_wait
+            if (errno == EINTR)
+            {
+                // Interrupted by signal, continue trying
+                continue;
+            }
+            throw std::runtime_error("Error waiting for UART write readiness");
         }
-        else if (poll_res == 0)
+        else if (numEvents == 0)
         {
-            throw std::runtime_error("Timeout while writing to UART");
+            // Timeout occurred in epoll_wait
+            continue;
         }
 
-        // Ready to write
-        ssize_t bytesWritten = write(uartFd, sendBuffer + total_written, sendBufferIndex - total_written);
+        // UART is ready for writing, attempt to write remaining data
+        ssize_t bytesWritten = write(uartFd, sendBuffer + bytesSent, sendBufferIndex - bytesSent);
+
         if (bytesWritten < 0)
         {
+            // Error handling
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                continue; // try again
+                // Device is not ready yet, continue trying
+                continue;
             }
             else
             {
+                // Other error
                 throw std::runtime_error("Error writing to UART device");
             }
         }
-        total_written += bytesWritten;
+        else if (bytesWritten == 0)
+        {
+            // No data written, but no error reported - unusual for write()
+            throw std::runtime_error("Zero bytes written to UART");
+        }
+        else
+        {
+            // Update progress
+            bytesSent += bytesWritten;
+        }
     }
+
+    // Reset buffer index after successful write
+    sendBufferIndex = 0;
 }
 
 #endif // ARDUINO

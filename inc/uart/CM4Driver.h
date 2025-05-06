@@ -55,7 +55,9 @@ class CM4UARTDriver : public UARTDriver
     std::string devicePath;
     int baudRate;
     int uartFd;  // UART file descriptor
-    int epollFd; // epoll file descriptor
+    // epoll file descriptor
+    int epollFdRead; // For reading
+    int epollFdWrite; // For writing
     bool isInitialized;
 
     /**
